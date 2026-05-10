@@ -13,3 +13,4 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     set((state) => ({ subscriptions: [subscription, ...state.subscriptions] })),
   setSubscriptions: (subscriptions) => set({ subscriptions }),
 }));
+
