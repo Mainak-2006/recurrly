@@ -3,13 +3,13 @@ import { Link, useRouter, type Href } from "expo-router";
 import { styled } from "nativewind";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
@@ -19,27 +19,27 @@ const SignIn = () => {
   const { signIn, errors, fetchStatus } = useSignIn();
   const router = useRouter();
 
-  const [emailAddress, setEmailAddress] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
 
   // Validation states
-  const [emailTouched, setEmailTouched] = useState(false);
+  const [identifierTouched, setIdentifierTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
-  // Client-side validation
-  const emailValid =
-    emailAddress.length === 0 ||
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress);
+  // Client-side validation: accepts email or username
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+  const isUsername = identifier.length > 0 && !identifier.includes("@");
+  const identifierValid = identifier.length === 0 || isEmail || isUsername;
   const passwordValid = password.length > 0;
   const formValid =
-    emailAddress.length > 0 && password.length > 0 && emailValid;
+    identifier.length > 0 && password.length > 0 && identifierValid;
 
   const handleSubmit = async () => {
     if (!formValid) return;
 
-    const { error } = await signIn.password({
-      emailAddress,
+    const { error } = await signIn.create({
+      identifier,
       password,
     });
 
@@ -242,21 +242,21 @@ const SignIn = () => {
             <View className="auth-card">
               <View className="auth-form">
                 <View className="auth-field">
-                  <Text className="auth-label">Email Address</Text>
+                  <Text className="auth-label">Email or Username</Text>
                   <TextInput
-                    className={`auth-input ${emailTouched && !emailValid && "auth-input-error"}`}
+                    className={`auth-input ${identifierTouched && !identifierValid && "auth-input-error"}`}
                     autoCapitalize="none"
-                    value={emailAddress}
-                    placeholder="name@example.com"
+                    value={identifier}
+                    placeholder="email or username"
                     placeholderTextColor="rgba(0, 0, 0, 0.4)"
-                    onChangeText={setEmailAddress}
-                    onBlur={() => setEmailTouched(true)}
+                    onChangeText={setIdentifier}
+                    onBlur={() => setIdentifierTouched(true)}
                     keyboardType="email-address"
-                    autoComplete="email"
+                    autoComplete="username"
                   />
-                  {emailTouched && !emailValid && (
+                  {identifierTouched && !identifierValid && (
                     <Text className="auth-error">
-                      Please enter a valid email address
+                      Please enter a valid email or username
                     </Text>
                   )}
                   {errors.fields.identifier && (

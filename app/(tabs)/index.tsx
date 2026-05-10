@@ -54,7 +54,7 @@ export default function App() {
 
   // Get user display name: firstName, fullName, or email
   const displayName =
-    user?.firstName ||
+    user?.username ||
     user?.fullName ||
     user?.emailAddresses[0]?.emailAddress ||
     "User";
