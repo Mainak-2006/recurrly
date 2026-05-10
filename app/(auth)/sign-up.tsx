@@ -21,11 +21,13 @@ const SignUp = () => {
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = useState("");
+  const [userName, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
 
   // Validation states
   const [emailTouched, setEmailTouched] = useState(false);
+  const [usernameTouched, setUsernameTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
   // Client-side validation
@@ -33,14 +35,16 @@ const SignUp = () => {
     emailAddress.length === 0 ||
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress);
   const passwordValid = password.length === 0 || password.length >= 8;
+  const usernameValid = userName.length > 0;
   const formValid =
-    emailAddress.length > 0 && password.length >= 8 && emailValid;
+    emailAddress.length > 0 && password.length >= 8 && emailValid && userName.length > 0;
 
   const handleSubmit = async () => {
     if (!formValid) return;
 
     const { error } = await signUp.password({
       emailAddress,
+      username: userName,
       password,
     });
 
@@ -233,6 +237,23 @@ const SignUp = () => {
                   {errors.fields.emailAddress && (
                     <Text className="auth-error">
                       {errors.fields.emailAddress.message}
+                    </Text>
+                  )}
+                </View>
+
+                <View className="auth-field">
+                  <Text className="auth-label">Username</Text>
+                  <TextInput
+                    className={`auth-input ${usernameTouched && !usernameValid && "auth-input-error"}`}
+                    value={userName}
+                    placeholder="Choose a username"
+                    placeholderTextColor="rgba(0, 0, 0, 0.4)"
+                    onChangeText={setUsername}
+                    onBlur={() => setUsernameTouched(true)}
+                  />
+                  {usernameTouched && !usernameValid && (
+                    <Text className="auth-error">
+                      Please enter a valid username
                     </Text>
                   )}
                 </View>
