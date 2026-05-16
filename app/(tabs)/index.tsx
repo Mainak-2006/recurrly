@@ -16,6 +16,7 @@ import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView);
 
+
 export default function App() {
   const { user } = useUser();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
@@ -42,7 +43,6 @@ export default function App() {
   }, [subscriptions]);
 
   const handleSubscriptionPress = (item: Subscription) => {
-    const isExpanding = expandedSubscriptionId !== item.id;
     setExpandedSubscriptionId((currentId) =>
       currentId === item.id ? null : item.id,
     );
