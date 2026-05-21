@@ -1,17 +1,12 @@
 import { HOME_SUBSCRIPTIONS } from "@/constants/data";
 import { create } from "zustand";
-import { subscriptionService } from "./appwriteService";
 
 interface SubscriptionStore {
   subscriptions: Subscription[];
   loading: boolean;
   error: string | null;
-  addSubscription: (
-    subscription: Subscription,
-    userId?: string,
-  ) => Promise<void>;
+  addSubscription: (subscription: Subscription) => Promise<void>;
   setSubscriptions: (subscriptions: Subscription[]) => void;
-  fetchSubscriptions: (userId: string) => Promise<void>;
   updateSubscription: (
     docId: string,
     updates: Partial<Subscription>,
@@ -21,6 +16,9 @@ interface SubscriptionStore {
   setError: (error: string | null) => void;
 }
 
+const generateId = () =>
+  `${Math.random().toString(36).substring(2, 11)}-${Date.now().toString(36)}`;
+
 export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   subscriptions: HOME_SUBSCRIPTIONS,
   loading: false,
@@ -29,27 +27,14 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
 
-  addSubscription: async (subscription, userId) => {
+  addSubscription: async (subscription) => {
     try {
       set({ loading: true, error: null });
-      if (userId) {
-        const response = await subscriptionService.createSubscription(
-          subscription,
-          userId,
-        );
-        set((state) => ({
-          subscriptions: [
-            { ...subscription, $id: response.$id } as Subscription,
-            ...state.subscriptions,
-          ],
-          loading: false,
-        }));
-      } else {
-        set((state) => ({
-          subscriptions: [subscription, ...state.subscriptions],
-          loading: false,
-        }));
-      }
+      const newSubscription = { ...subscription, id: generateId() };
+      set((state) => ({
+        subscriptions: [newSubscription, ...state.subscriptions],
+        loading: false,
+      }));
     } catch (error) {
       set({ error: "Failed to add subscription", loading: false });
       throw error;
@@ -58,21 +43,9 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
 
   setSubscriptions: (subscriptions) => set({ subscriptions }),
 
-  fetchSubscriptions: async (userId) => {
-    try {
-      set({ loading: true, error: null });
-      const docs = await subscriptionService.getSubscriptions(userId);
-      set({ subscriptions: docs as unknown as Subscription[], loading: false });
-    } catch (error) {
-      set({ error: "Failed to fetch subscriptions", loading: false });
-      throw error;
-    }
-  },
-
   updateSubscription: async (docId, updates) => {
     try {
       set({ loading: true, error: null });
-      await subscriptionService.updateSubscription(docId, updates);
       set((state) => ({
         subscriptions: state.subscriptions.map((sub) =>
           sub.id === docId ? { ...sub, ...updates } : sub,
@@ -88,7 +61,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   deleteSubscription: async (docId) => {
     try {
       set({ loading: true, error: null });
-      await subscriptionService.deleteSubscription(docId);
       set((state) => ({
         subscriptions: state.subscriptions.filter((sub) => sub.id !== docId),
         loading: false,
