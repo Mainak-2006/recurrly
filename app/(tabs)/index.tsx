@@ -11,19 +11,34 @@ import { formatCurrency } from "@/lib/utils";
 import { useUser } from "@clerk/expo";
 import dayjs from "dayjs";
 import { styled } from "nativewind";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView);
 
-
 export default function App() {
   const { user } = useUser();
+  const clerkUserId = user?.id;
+  const currentUserId = clerkUserId ? clerkUserId : undefined;
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
   >(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { subscriptions, addSubscription } = useSubscriptionStore();
+  const {
+    subscriptions,
+    addSubscription,
+    updateSubscription,
+    deleteSubscription,
+    initialize,
+  } = useSubscriptionStore();
+
+  useEffect(() => {
+    if (currentUserId) {
+      initialize(currentUserId).catch((error) => {
+        console.error("Failed to initialize subscriptions:", error);
+      });
+    }
+  }, [currentUserId, initialize]);
 
   // Get upcoming subscriptions (active subscriptions with renewal date within next 7 days)
 
@@ -35,11 +50,18 @@ export default function App() {
         const daysLeft = dayjs(sub.renewalDate).startOf("day").diff(now, "day");
         return daysLeft >= 0 && daysLeft <= 7;
       })
-      .sort((a, b) =>
-        dayjs(a.renewalDate)
-          .startOf("day")
-          .diff(dayjs(b.renewalDate).startOf("day")),
-      );
+      .map((sub) => ({
+        id: sub.id,
+        icon:
+          typeof sub.icon === "string" || sub.icon === undefined
+            ? icons.plus
+            : sub.icon,
+        name: sub.name,
+        price: sub.price,
+        currency: sub.currency,
+        daysLeft: dayjs(sub.renewalDate).startOf("day").diff(now, "day"),
+      }))
+      .sort((a, b) => a.daysLeft - b.daysLeft);
   }, [subscriptions]);
 
   const handleSubscriptionPress = (item: Subscription) => {
@@ -49,7 +71,26 @@ export default function App() {
   };
 
   const handleCreateSubscription = (newSubscription: Subscription) => {
-    addSubscription(newSubscription);
+    addSubscription(newSubscription, currentUserId).catch((error) => {
+      console.error("Failed to create subscription:", error);
+    });
+  };
+
+  const handleToggleSubscriptionStatus = (subscription: Subscription) => {
+    const nextStatus = subscription.status === "active" ? "paused" : "active";
+    updateSubscription(
+      subscription.id,
+      { status: nextStatus },
+      currentUserId,
+    ).catch((error) => {
+      console.error("Failed to update subscription:", error);
+    });
+  };
+
+  const handleDeleteSubscription = (subscriptionId: string) => {
+    deleteSubscription(subscriptionId, currentUserId).catch((error) => {
+      console.error("Failed to delete subscription:", error);
+    });
   };
 
   // Get user display name: firstName, fullName, or email
@@ -101,7 +142,7 @@ export default function App() {
                 renderItem={({ item }) => (
                   <UpcomingSubscriptionCard
                     {...item}
-                    daysLeft={dayjs(item.renewalDate).diff(dayjs(), "day")}
+                    daysLeft={item.daysLeft}
                   />
                 )}
                 keyExtractor={(item) => item.id}
@@ -125,6 +166,8 @@ export default function App() {
             {...item}
             expanded={expandedSubscriptionId === item.id}
             onPress={() => handleSubscriptionPress(item)}
+            onUpdatePress={() => handleToggleSubscriptionStatus(item)}
+            onDeletePress={() => handleDeleteSubscription(item.id)}
           />
         )}
         extraData={expandedSubscriptionId}
